@@ -14,9 +14,7 @@ const App = () => {
   const contentContainerRef = useRef<HTMLDivElement>(null)
 
   const resetScroll = () => {
-    if (contentContainerRef.current) {
-      contentContainerRef.current?.scrollTo(0, 0)
-    }
+    contentContainerRef.current?.scrollTo(0, 0)
   }
 
   return (
