@@ -6,8 +6,8 @@ import { LuFileSignature } from 'react-icons/lu'
 export const NewNoteButton = ({ ...props }: ActionButtonProps) => {
   const createEmptyNote = useSetAtom(createEmptyNoteAtom)
 
-  const handleCreate = () => {
-    createEmptyNote()
+  const handleCreate = async () => {
+    await createEmptyNote()
   }
 
   return (
