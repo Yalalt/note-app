@@ -1,10 +1,12 @@
-import { appDirectoryName, fileEncoding } from '@shared/constants'
+import { appDirectoryName, fileEncoding, welcomeNoteFileName } from '@shared/constants'
 import { NoteInfo } from '@shared/models'
-import { CreateNote, GetNotes, ReadNote, WriteNote } from '@shared/types'
+import { CreateNote, DeleteNote, GetNotes, ReadNote, WriteNote } from '@shared/types'
 import { dialog } from 'electron'
-import { ensureDir, readFile, readdir, stat, writeFile } from 'fs-extra'
+import { ensureDir, readFile, readdir, remove, stat, writeFile } from 'fs-extra'
+import { isEmpty } from 'lodash'
 import { homedir } from 'os'
 import path from 'path'
+import WelcomeNoteFile from '../../../resources/welcomeNote.md?asset'
 
 export const getRootDir = () => {
   return `${homedir()}/${appDirectoryName}`
@@ -21,6 +23,17 @@ export const getNotes: GetNotes = async () => {
   })
 
   const notes = notesFileNames.filter((filename) => filename.endsWith('.md'))
+
+  if (isEmpty(notes)) {
+    console.info('No notes found, creating a welcome note.')
+
+    const content = await readFile(WelcomeNoteFile, { encoding: fileEncoding })
+
+    // create the welcome note
+    await writeFile(`${rootDir}/${welcomeNoteFileName}`, content, { encoding: fileEncoding })
+
+    notes.push(welcomeNoteFileName)
+  }
 
   return Promise.all(notes.map((filename) => getNoteInfoFromFilename(filename)))
 }
@@ -59,6 +72,7 @@ export const createNote: CreateNote = async () => {
     defaultPath: `${rootDir}/Untitled.md`,
     buttonLabel: 'Create',
     properties: ['showOverwriteConfirmation'],
+    showsTagField: false,
     filters: [
       {
         name: 'Markdown',
@@ -83,8 +97,31 @@ export const createNote: CreateNote = async () => {
 
     return false
   }
+
   console.info(`Creating note: ${filePath}`)
-  await writeFile(filePath, '', { encoding: fileEncoding })
+  await writeFile(filePath, '')
 
   return filename
+}
+
+export const deleteNote: DeleteNote = async (filename) => {
+  const rootDir = getRootDir()
+
+  const { response } = await dialog.showMessageBox({
+    type: 'warning',
+    title: 'Delete note',
+    message: `Are you sure you want to delete ${filename}?`,
+    buttons: ['Delete', 'Cancel'],
+    defaultId: 1,
+    cancelId: 1
+  })
+
+  if (response === 1) {
+    console.info('Note deletion canceled')
+    return false
+  }
+
+  console.info(`Deleting note: ${filename}`)
+  await remove(`${rootDir}/${filename}.md`)
+  return true
 }
